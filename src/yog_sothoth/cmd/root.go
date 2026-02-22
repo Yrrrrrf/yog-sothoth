@@ -1,0 +1,30 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+	"src/yog_sothoth/pkg/config"
+)
+
+var rootCmd = &cobra.Command{
+	Use:   "yog",
+	Short: "Yog-Sothoth: The Key and the Gate",
+	Long:  `Yog-Sothoth is the infrastructure layer. It prepares the universe for your projects and ensures everything has a solid foundation.`,
+	// No Run func since this is just the root command that has subcommands.
+}
+
+// Execute adds all child commands to the root command and sets flags appropriately.
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func init() {
+	cobra.OnInitialize(config.InitConfig)
+	
+	// Define global flags here if needed
+}
