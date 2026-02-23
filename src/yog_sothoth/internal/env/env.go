@@ -93,7 +93,7 @@ func Check() error {
 	return nil
 }
 
-// Diff shows variables in .env that aren't in .env.example
+// Diff shows variables in .env that aren't in .env.example and vice-versa
 func Diff() error {
 	envVars, err := godotenv.Read(".env")
 	if err != nil {
@@ -112,12 +112,32 @@ func Diff() error {
 		}
 	}
 
-	if len(extra) > 0 {
+	missing := []string{}
+	for key := range exampleVars {
+		if _, ok := envVars[key]; !ok {
+			missing = append(missing, key)
+		}
+	}
+
+	hasDrift := len(extra) > 0
+	hasMissing := len(missing) > 0
+
+	if hasDrift {
 		fmt.Println(ui.RenderWarn("Variables in .env but missing from .env.example (potential drift):"))
 		for _, e := range extra {
 			fmt.Println(ui.RenderItem(e))
 		}
-	} else {
+	}
+
+	if hasMissing {
+		fmt.Println()
+		fmt.Println(ui.RenderError("Variables in .env.example but missing from .env:"))
+		for _, m := range missing {
+			fmt.Println(ui.RenderItem(m))
+		}
+	}
+
+	if !hasDrift && !hasMissing {
 		fmt.Println(ui.RenderSuccess("No drift detected! .env and .env.example are perfectly synced."))
 	}
 
