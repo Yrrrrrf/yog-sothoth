@@ -19,7 +19,7 @@ Pairs with **[Azathoth](https://github.com/Yrrrrrf/azathoth)** (AI/MCP layer) as
 | `yog env load` | Walks up the directory tree to find and load `.env` |
 | `yog reborn [runtime]` | Deep-cleans build artifacts and reinstalls from scratch |
 
-`reborn` flags: `--deep` (also nuke lockfiles), `--dry-run`, `--no-install`
+`reborn` flags: `--deep` (also nuke lockfiles), `--full` (recursive workspace clean), `--dry-run`, `--no-install`
 
 > **Node.js is never supported.** Deno and Bun only.
 
