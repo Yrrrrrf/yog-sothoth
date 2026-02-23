@@ -9,9 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Version string = "dev"
+
 var rootCmd = &cobra.Command{
 	Use:     "yog",
-	Version: "0.0.1",
+	Version: Version,
 	Short:   "Yog-Sothoth: The Key and the Gate",
 	Long:    `Yog-Sothoth is the infrastructure layer. It prepares the universe for your projects and ensures everything has a solid foundation.`,
 }

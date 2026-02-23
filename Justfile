@@ -1,9 +1,11 @@
 # Yog-Sothoth Justfile
 
+version := `grep -m 1 '^version = ' pyproject.toml | cut -d '"' -f 2`
+
 # Build the CLI for local dev and output to ~/go/bin/yog
 build:
-	go build -o ~/go/bin/yog ./src/yog_sothoth
-	go build -o ./src/yog_sothoth/bin/yog ./src/yog_sothoth
+	go build -ldflags="-X 'src/yog_sothoth/cmd.Version={{version}}'" -o ~/go/bin/yog ./src/yog_sothoth
+	go build -ldflags="-X 'src/yog_sothoth/cmd.Version={{version}}'" -o ./src/yog_sothoth/bin/yog ./src/yog_sothoth
 
 # Cross-compile all platform targets into src/yog_sothoth/bin/ for PyPI packaging
 build-py:
@@ -25,7 +27,7 @@ build-py:
 		read -r goos goarch outname <<< "$target"
 		echo "  → $outname"
 		CGO_ENABLED=0 GOOS=$goos GOARCH=$goarch go build \
-			-ldflags="-s -w" \
+			-ldflags="-s -w -X src/yog_sothoth/cmd.Version={{version}}" \
 			-o src/yog_sothoth/bin/$outname \
 			./src/yog_sothoth
 		if [[ "$goos" != "windows" ]]; then
