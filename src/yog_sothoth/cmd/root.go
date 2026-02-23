@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"src/yog_sothoth/pkg/config"
+
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
@@ -25,6 +26,6 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(config.InitConfig)
-	
+
 	// Define global flags here if needed
 }

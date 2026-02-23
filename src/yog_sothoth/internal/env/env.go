@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"src/yog_sothoth/pkg/ui"
+
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
-	"src/yog_sothoth/pkg/ui"
 )
 
 // Load traverses up the tree to find and load a .env file
@@ -23,17 +24,17 @@ func Load(showValues bool) error {
 		envPath := filepath.Join(dir, ".env")
 		if _, err := os.Stat(envPath); err == nil {
 			fmt.Println(ui.RenderInfo(fmt.Sprintf("Loading .env from %s", envPath)))
-			
+
 			envMap, err := godotenv.Read(envPath)
 			if err != nil {
 				return err
 			}
-			
+
 			err = godotenv.Load(envPath)
 			if err != nil {
 				return err
 			}
-			
+
 			count := 0
 			for k, v := range envMap {
 				displayStr := k
@@ -43,7 +44,7 @@ func Load(showValues bool) error {
 				fmt.Println(ui.RenderSuccess(fmt.Sprintf("Loaded: %s", displayStr)))
 				count++
 			}
-			
+
 			fmt.Println(ui.RenderSuccess(fmt.Sprintf("Finished: Loaded %d variables from %s.", count, envPath)))
 			return nil
 		}
@@ -173,7 +174,7 @@ func Sync() error {
 
 	fmt.Println(ui.RenderInfo("Syncing missing variables..."))
 	fmt.Println(ui.SuccessStyle.Render("Enter values:"))
-	
+
 	reader := bufio.NewReader(os.Stdin)
 
 	f, err := os.OpenFile(".env", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
@@ -191,15 +192,15 @@ func Sync() error {
 
 	for _, key := range missing {
 		exampleVal := exampleVars[key]
-		
+
 		// The prompt prints the Key, then the example dimmed.
 		// We do NOT print a newline so the user types directly on this line.
-		fmt.Printf("%s %s", 
+		fmt.Printf("%s %s",
 			keyStyle.Render(key+":"),
 			lipgloss.NewStyle().Foreground(ui.MutedColor).Render(exampleVal),
 		)
-		
-		// Move the cursor back by the length of the example text 
+
+		// Move the cursor back by the length of the example text
 		// so the user types "over" the example text (creating the ghost effect).
 		if len(exampleVal) > 0 {
 			offset := lipgloss.Width(keyStyle.Render(key+":")) + 1 // +1 for the space after the colon

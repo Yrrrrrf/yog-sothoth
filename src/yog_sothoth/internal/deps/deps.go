@@ -20,7 +20,7 @@ func detectRuntime() string {
 	if _, err := os.Stat("bun.lockb"); err == nil {
 		return "bun"
 	}
-	
+
 	// Fallback detection
 	if _, err := os.Stat("package.json"); err == nil {
 		fmt.Println(ui.RenderWarn("Node.js is never supported. Defaulting to Bun as runtime proxy for package.json..."))
@@ -86,7 +86,7 @@ func Reborn(runtime string, deep, dryRun, noInstall bool) error {
 			return fmt.Errorf("reborn installation failed: %w", err)
 		}
 	}
-	
+
 	fmt.Println(ui.RenderSuccess(fmt.Sprintf("%s reborn complete.", runtime)))
 	return nil
 }
