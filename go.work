@@ -1,6 +1,5 @@
 go 1.25.6
 
 use (
-	./src/hack_go
 	./src/yog_sothoth
 )

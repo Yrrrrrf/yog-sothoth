@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-
 	"src/yog_sothoth/pkg/ui"
-	"src/yog_sothoth/scripts"
 )
 
 func detectRuntime() string {
@@ -47,40 +44,49 @@ func Reborn(runtime string, deep, dryRun, noInstall bool) error {
 		return fmt.Errorf("unsupported runtime: %s (Node.js is never supported)", runtime)
 	}
 
-	scriptName := fmt.Sprintf("reborn_%s.sh", runtime)
-	scriptContent, err := scripts.Files.ReadFile(scriptName)
-	if err != nil {
-		return fmt.Errorf("internal error: could not load script %s: %w", scriptName, err)
-	}
+	targets := []string{"node_modules", ".svelte-kit", ".vite", "dist"}
 
-	// Write script to a temporary file to execute
-	tmpDir := os.TempDir()
-	tmpScriptPath := filepath.Join(tmpDir, scriptName)
-	if err := os.WriteFile(tmpScriptPath, scriptContent, 0700); err != nil {
-		return fmt.Errorf("failed to write tmp script: %w", err)
-	}
-	defer os.Remove(tmpScriptPath)
-
-	deepStr := "false"
 	if deep {
-		deepStr = "true"
+		if runtime == "deno" {
+			targets = append(targets, "deno.lock")
+		} else if runtime == "bun" {
+			targets = append(targets, "bun.lockb", "bun.lock")
+		}
 	}
-	dryRunStr := "false"
-	if dryRun {
-		dryRunStr = "true"
+
+	fmt.Println(ui.RenderInfo(fmt.Sprintf("Purging %s build artifacts...", runtime)))
+
+	for _, target := range targets {
+		if _, err := os.Stat(target); err == nil {
+			if dryRun {
+				fmt.Println(ui.RenderWarn(fmt.Sprintf("[DRY-RUN] Would remove: %s", target)))
+			} else {
+				fmt.Printf("Removing: %s\n", target)
+				if err := os.RemoveAll(target); err != nil {
+					return fmt.Errorf("failed to remove %s: %w", target, err)
+				}
+			}
+		}
 	}
-	noInstallStr := "false"
+
 	if noInstall {
-		noInstallStr = "true"
+		fmt.Println(ui.RenderInfo("Skipping installation as requested."))
+		return nil
 	}
 
-	cmd := exec.Command("bash", tmpScriptPath, deepStr, dryRunStr, noInstallStr)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	if dryRun {
+		fmt.Println(ui.RenderWarn(fmt.Sprintf("[DRY-RUN] Would run: %s install", runtime)))
+	} else {
+		fmt.Println(ui.RenderInfo("Reinstalling dependencies..."))
+		cmd := exec.Command(runtime, "install")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("reborn script failed: %w", err)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("reborn installation failed: %w", err)
+		}
 	}
-
+	
+	fmt.Println(ui.RenderSuccess(fmt.Sprintf("%s reborn complete.", runtime)))
 	return nil
 }
