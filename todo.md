@@ -1,110 +1,69 @@
-# Embed `yog` binary into the Python package
-
-> _Make `uv tool install yog-sothoth` the only install step anyone ever needs_
-
-The goal: ship the compiled Go binary **inside** the PyPI package so users get a
-fully functional `yog` CLI with zero Go toolchain requirements. Same pattern
-used by `ruff`, `pyright`, and `esbuild`.
+# Yog-Sothoth — Next Improvements
 
 ---
 
-## Phase 1 — Restructure the package
+## Fix 1 — `yog env load` shell integration
 
-- [ ] Create `src/yog_sothoth/bin/` directory
-- [ ] Add a `.gitkeep` so the folder is tracked but binaries are gitignored
-- [ ] Update `.gitignore` to exclude `src/yog_sothoth/bin/yog-*`
-- [ ] Add `src/yog_sothoth/bin/__init__.py` (empty, makes it a proper
-      subpackage)
-- [ ] Wire up package data in `pyproject.toml`:
-  ```toml
-  [tool.setuptools.package-data]
-  "yog_sothoth.bin" = ["*"]
+> _The CLI can't mutate its parent shell. Change the contract: emit, don't load._
+
+The current implementation calls `os.Setenv()` inside the Go process, which only
+affects the child process and is lost the moment the command exits. The fix is to
+make `env load` print `export` statements to stdout and let the shell evaluate them.
+
+### Changes needed
+
+- [ ] Rewrite `envLoadCmd` in `cmd/env.go` to print to stdout instead of setting env vars:
+  ```go
+  for k, v := range vars {
+      fmt.Printf("export %s=%q\n", k, v)
+  }
   ```
+- [ ] Remove any `os.Setenv()` calls from the load path
+- [ ] Remove the `--show-values` flag (now redundant — stdout is the output)
+- [ ] Update `README.md` to document the new usage pattern:
+  ```bash
+  # Inline eval
+  eval "$(yog env load)"
+
+  # Or add a shell alias (recommended)
+  alias yog-load='eval "$(yog env load)"'
+  ```
+- [ ] Add a note in `yog env load --help` explaining the eval pattern and why
+  direct loading is not possible from a subprocess
+
+### References
+
+Same pattern used by `direnv`, `rbenv`, `nvm`, and `ssh-agent`.
 
 ---
 
-## Phase 2 — Update `cli.py`
+## Fix 2 — Stop tracking compiled binaries in git
 
-- [ ] Replace hardcoded `Path.home() / "go" / "bin" / "yog"` with dynamic
-      resolution
-- [ ] Implement `get_binary()` using `platform.system()` + `platform.machine()`
-- [ ] Use `importlib.resources.files()` to resolve the binary path inside the
-      package
-- [ ] Handle the `.exe` extension on Windows
-- [ ] Handle `aarch64` → `arm64` machine name normalization
-- [ ] Add a clear error if the binary for the current platform is missing (don't
-      silently fail)
-- [ ] Keep the old `Path.home()` fallback for local dev (editable installs
-      before a build)
+> _Binaries are build artifacts. They belong in `.gitignore`, not in history._
 
-```
-# Target matrix to support:
-yog-linux-amd64
-yog-linux-arm64
-yog-darwin-amd64
-yog-darwin-arm64
-yog-windows-amd64.exe
-```
+Every `just build` produces new `yog-*` binaries in `src/yog_sothoth/bin/`. Since
+they are re-compilable at any time, there is no reason to track them — they bloat
+the repo and the package with every rebuild.
 
----
+### Changes needed
 
-## Phase 3 — Build script
+- [ ] Add the following to `.gitignore`:
+  ```
+  src/yog_sothoth/bin/yog-*
+  ```
+- [ ] Add a `src/yog_sothoth/bin/.gitkeep` so the `bin/` directory itself stays
+  tracked (git does not track empty directories)
+- [ ] Untrack any binaries already committed to history:
+  ```bash
+  git rm --cached src/yog_sothoth/bin/yog-*
+  git commit -m "chore: untrack compiled binaries from git history"
+  ```
+- [ ] Verify `pyproject.toml` still packages them correctly at wheel build time —
+  the `include = ["src/yog_sothoth/bin/*"]` glob is fine because `just build`
+  will have produced the binaries on disk before `uv build` runs
 
-- [ ] Write `build.sh` at the repo root that cross-compiles all targets
-- [ ] Iterate over `GOOS` × `GOARCH` combinations
-- [ ] Output binaries directly into `src/yog_sothoth/bin/`
-- [ ] Set executable permissions (`chmod +x`) on non-Windows binaries
-- [ ] Print a summary of file sizes after build (sanity check — expect ~8-12MB
-      each)
-- [ ] Make the script fail fast on any compilation error (`set -e`)
+### Notes
 
----
-
-## Phase 4 — Publish pipeline
-
-- [ ] Add `build.sh` as a prerequisite step before `uv build`
-- [ ] Verify the built wheel actually contains the binaries
-      (`unzip -l dist/*.whl | grep bin/`)
-- [ ] Test install from the wheel locally:
-      `uv tool install dist/yog_sothoth-*.whl`
-- [ ] Confirm `yog --help` works after wheel install with no Go on PATH
-- [ ] Publish: `uv publish`
-
----
-
-## Phase 5 — CI (optional but nice)
-
-- [ ] Add a GitHub Actions workflow that:
-  - triggers on version tag push (`v*`)
-  - runs `build.sh` to cross-compile all targets
-  - runs `uv build`
-  - runs `uv publish` with PyPI token from secrets
-- [ ] Cache the Go build artifacts between runs
-
----
-
-## Open questions
-
-- **Windows arm64?** Go supports it. Probably skip for now unless there's a real
-  use case.
-- **Binary size:** Strip debug info with `-ldflags="-s -w"` to cut ~30% off each
-  binary. Worth it.
-- **Editable installs:** `uv tool install --editable .` won't have the binaries
-  pre-built — the fallback to `~/go/bin/yog` covers this, but document it
-  clearly.
-- **Version sync:** Should the Python package version and the Go binary version
-  be kept in lockstep? Yes. Automate it or it will drift.
-
----
-
-## Reference implementations to study
-
-- `ruff` — platform wheels approach (more complex, not needed here)
-- `pyright` — single package with bundled binary, very close to what we want
-- `esbuild-python` — simple subprocess wrapper with embedded binary, basically
-  this exact pattern
-
----
-
-_When this is done: `uv tool install yog-sothoth` is the only command anyone
-needs. No Go. No PATH. No friction._
+- `just clean-bin` already exists — use it after confirming gitignore is in place
+- CI (Phase 5 from old todo) must run `just build` before `uv build` so the
+  binaries exist at publish time even though they are not in the repo
