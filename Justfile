@@ -3,12 +3,12 @@
 version := `grep -m 1 '^version = ' pyproject.toml | cut -d '"' -f 2`
 
 # Build the CLI for local dev and output to ~/go/bin/yog
-build:
-	go build -ldflags="-X 'src/yog_sothoth/cmd.Version={{version}}'" -o ~/go/bin/yog ./src/yog_sothoth
-	go build -ldflags="-X 'src/yog_sothoth/cmd.Version={{version}}'" -o ./src/yog_sothoth/bin/yog ./src/yog_sothoth
+# build:
+# 	go build -ldflags="-X 'src/yog_sothoth/cmd.Version={{version}}'" -o ~/go/bin/yog ./src/yog_sothoth
+# 	go build -ldflags="-X 'src/yog_sothoth/cmd.Version={{version}}'" -o ./src/yog_sothoth/bin/yog ./src/yog_sothoth
 
 # Cross-compile all platform targets into src/yog_sothoth/bin/ for PyPI packaging
-build-py:
+build:
 	#!/usr/bin/env bash
 	set -e
 	mkdir -p src/yog_sothoth/bin
@@ -38,18 +38,6 @@ build-py:
 	echo ""
 	echo "Build complete. Binary sizes:"
 	ls -lh src/yog_sothoth/bin/ | awk '{print "  " $5 "  " $9}'
-
-
-
-
-
-# # Build the Python wheel (runs build-py first)
-# package: build-py
-# 	uv build
-
-# # Publish to PyPI (runs full pipeline)
-# publish: package
-# 	uv publish
 
 # Remove all compiled binaries from the bin/ dir
 clean-bin:
