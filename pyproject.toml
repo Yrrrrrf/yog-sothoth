@@ -1,31 +1,42 @@
 [project]
 name = "yog-sothoth"
-version = "0.0.1"
+version = "0.0.2"
 description = "That one who knows all the secrets"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { file = "LICENSE" }
 authors = [
 	{ name = "Fernando Bryan Reza Campos", email = "fer.rezac@outlook.com" },
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.10"
 dependencies = []
-
-[tool.uv.workspace]
-members = ["src/yog_sothoth/*.py"]
-exclude = [
-	"src/*",
-	# pkg related
-	"*.lock",
-	"dist",
-	"flake.*",
-
-	# go related stuff
-	"src/yog_sothoth/*.mod",
-	"src/yog_sothoth/*.go",
+keywords = ["cli", "devtools", "environment", "dotenv", "infrastructure"]
+classifiers = [
+	"Development Status :: 2 - Pre-Alpha",
+	"Intended Audience :: Developers",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+	"Programming Language :: Python :: 3.13",
+	"Programming Language :: Python :: 3.14",
+	"Topic :: Software Development :: Build Tools",
+	"Topic :: System :: Systems Administration",
+	"Topic :: Utilities",
+	"Typing :: Typed",
+	"License :: OSI Approved :: MIT License",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Yrrrrrf/yog-sothoth"
+Repository = "https://github.com/Yrrrrrf/yog-sothoth"
+Issues = "https://github.com/Yrrrrrf/yog-sothoth/issues"
 
 [project.scripts]
 yog = "yog_sothoth:main"
 yog-sothoth = "yog_sothoth:main"
+
+[tool.uv.build-backend]
+module-name = "yog_sothoth"
+include = ["src/yog_sothoth/__init__.py", "src/yog_sothoth/bin/*"]
 
 [tool.pyright]
 venvPath = "."
