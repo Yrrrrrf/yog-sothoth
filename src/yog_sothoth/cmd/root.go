@@ -10,10 +10,10 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "yog",
-	Short: "Yog-Sothoth: The Key and the Gate",
-	Long:  `Yog-Sothoth is the infrastructure layer. It prepares the universe for your projects and ensures everything has a solid foundation.`,
-	// No Run func since this is just the root command that has subcommands.
+	Use:     "yog",
+	Version: "0.0.1",
+	Short:   "Yog-Sothoth: The Key and the Gate",
+	Long:    `Yog-Sothoth is the infrastructure layer. It prepares the universe for your projects and ensures everything has a solid foundation.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -26,6 +26,4 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(config.InitConfig)
-
-	// Define global flags here if needed
 }
