@@ -2,8 +2,11 @@ package deps
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
+
 	"src/yog_sothoth/pkg/ui"
 )
 
@@ -43,19 +46,47 @@ func Reborn(runtime string, deep, dryRun, noInstall bool) error {
 		}
 	}
 
+	targetMap := make(map[string]bool)
+	for _, t := range targets {
+		targetMap[t] = true
+	}
+
 	fmt.Println(ui.RenderInfo(fmt.Sprintf("Purging %s build artifacts...", runtime)))
 
-	for _, target := range targets {
-		if _, err := os.Stat(target); err == nil {
+	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if path == "." {
+			return nil
+		}
+
+		// Skip version control
+		if d.IsDir() && d.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
+		if targetMap[d.Name()] {
 			if dryRun {
-				fmt.Println(ui.RenderWarn(fmt.Sprintf("[DRY-RUN] Would remove: %s", target)))
+				fmt.Println(ui.RenderWarn(fmt.Sprintf("[DRY-RUN] Would remove: %s", path)))
+				if d.IsDir() {
+					return filepath.SkipDir
+				}
 			} else {
-				fmt.Printf("Removing: %s\n", target)
-				if err := os.RemoveAll(target); err != nil {
-					return fmt.Errorf("failed to remove %s: %w", target, err)
+				fmt.Printf("Removing: %s\n", path)
+				if errRemove := os.RemoveAll(path); errRemove != nil {
+					return fmt.Errorf("failed to remove %s: %w", path, errRemove)
+				}
+				if d.IsDir() {
+					return filepath.SkipDir
 				}
 			}
 		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error during recursive artifact search: %w", err)
 	}
 
 	if noInstall {
